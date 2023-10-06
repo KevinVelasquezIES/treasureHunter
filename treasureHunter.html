@@ -18,26 +18,68 @@
         autoDetectRenderer = PIXI.autoDetectRenderer,
         loader = PIXI.loader,
         resources = PIXI.loader.resources,
-        Sprite = PIXI.Sprite;
-      //id = PIXI.loader.resources["./images/treasureHunter.json"].textures;
+        TextureCache = PIXI.utils.TextureCache,
+        Texture = PIXI.Texture,
+        Sprite = PIXI.Sprite,
+        dungeon,
+        explorer,
+        trasure,
+        door,
+        id;
 
       let stage = new Container(),
         renderer = autoDetectRenderer(512, 512);
       document.body.appendChild(renderer.view);
 
       loader
-        .add(["./images/treasureHunter.png", "./images/treasureHunter.json"])
+        .add(["./images/treasureHunterK.json"])
         .on("progress", loadProgressHandler)
         .load(setup);
 
       function loadProgressHandler(loader, resource) {
-        console.log(`loading: ${"./treasureHunter.json"}`);
+        console.log(`loading: ${"./treasureHunterK.json"}`);
         console.log(`loading: ${loader.progress}`);
-        console.log(`loading: ${"./treasureHunter.png"}`);
+      }
+
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
       function setup() {
         console.log("All files loaded");
+
+        let id =
+          PIXI.loader.resources["./images/treasureHunterK.json"].textures;
+
+        let dungeon = new Sprite(id["dungeon.png"]),
+          explorer = new Sprite(id["explorer.png"]),
+          treasure = new Sprite(id["treasure.png"]),
+          door = new Sprite(id["door.png"]);
+
+        stage.addChild(dungeon, explorer, treasure, door);
+
+        explorer.position.set(68, stage.height / 2 - explorer.height / 2);
+        treasure.position.set(
+          stage.width - treasure.width - 48,
+          stage.height / 2 - treasure.height / 2
+        );
+        door.position.set(32, 0);
+
+        let numberOfBlobs = 6,
+          spacing = 48,
+          xOffset = 150;
+
+        for (let i = 0; i < numberOfBlobs; i++) {
+          let blob = new Sprite(id["blob.png"]);
+
+          let x = spacing * i + xOffset;
+
+          let y = randomInt(0, stage.height - blob.height);
+
+          blob.position.set(x, y);
+
+          stage.addChild(blob);
+        }
 
         renderer.render(stage);
       }
