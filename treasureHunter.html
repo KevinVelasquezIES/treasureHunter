@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Treasure Hunter</title>
+  </head>
+  <body>
+    <script src="./pixi.min.js"></script>
+    <script>
+      let Container = PIXI.Container,
+        autoDetectRenderer = PIXI.autoDetectRenderer,
+        loader = PIXI.loader,
+        resources = PIXI.loader.resources,
+        Sprite = PIXI.Sprite;
+      //id = PIXI.loader.resources["./images/treasureHunter.json"].textures;
+
+      let stage = new Container(),
+        renderer = autoDetectRenderer(512, 512);
+      document.body.appendChild(renderer.view);
+
+      loader
+        .add(["./images/treasureHunter.png", "./images/treasureHunter.json"])
+        .on("progress", loadProgressHandler)
+        .load(setup);
+
+      function loadProgressHandler(loader, resource) {
+        console.log(`loading: ${"./treasureHunter.json"}`);
+        console.log(`loading: ${loader.progress}`);
+        console.log(`loading: ${"./treasureHunter.png"}`);
+      }
+
+      function setup() {
+        console.log("All files loaded");
+
+        renderer.render(stage);
+      }
+    </script>
+  </body>
+</html>
