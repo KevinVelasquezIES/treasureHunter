@@ -13,6 +13,9 @@
   </head>
   <body>
     <script src="./pixi.min.js"></script>
+    <script src="./keyboard.js"></script>
+    <script src="./bump.js"></script>
+    <script src="contain.js"></script>
     <script>
       let Container = PIXI.Container,
         autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -21,11 +24,16 @@
         TextureCache = PIXI.utils.TextureCache,
         Texture = PIXI.Texture,
         Sprite = PIXI.Sprite,
+        Graphics = PIXI.Graphics,
+        Text = PIXI.Text,
+        b = new Bump(PIXI),
         dungeon,
         explorer,
+        blob,
         trasure,
         door,
-        id;
+        id,
+        state;
 
       let stage = new Container(),
         renderer = autoDetectRenderer(512, 512);
@@ -48,40 +56,220 @@
       function setup() {
         console.log("All files loaded");
 
+        gameScene = new Container();
+        stage.addChild(gameScene);
+        gameOverScene = new Container();
+        stage.addChild(gameOverScene);
+
+        gameOverScene.visible = false;
+
         let id =
           PIXI.loader.resources["./images/treasureHunterK.json"].textures;
 
-        let dungeon = new Sprite(id["dungeon.png"]),
-          explorer = new Sprite(id["explorer.png"]),
-          treasure = new Sprite(id["treasure.png"]),
-          door = new Sprite(id["door.png"]);
-
-        stage.addChild(dungeon, explorer, treasure, door);
-
-        explorer.position.set(68, stage.height / 2 - explorer.height / 2);
-        treasure.position.set(
-          stage.width - treasure.width - 48,
-          stage.height / 2 - treasure.height / 2
-        );
+        //Dungeon
+        dungeon = new Sprite(id["dungeon.png"]);
+        gameScene.addChild(dungeon);
+        //Door
+        door = new Sprite(id["door.png"]);
         door.position.set(32, 0);
+        gameScene.addChild(door);
+        //Explorer
+        explorer = new Sprite(id["explorer.png"]);
+        explorer.x = 68;
+        explorer.y = gameScene.height / 2 - explorer.height / 2;
+        explorer.vx = 0;
+        explorer.vy = 0;
+        gameScene.addChild(explorer);
+
+        //Capture the keyboard arrow keys
+        let left = keyboard(37),
+          up = keyboard(38),
+          right = keyboard(39),
+          down = keyboard(40);
+
+        //Left arrow key `press` method
+        left.press = () => {
+          //Change the sprite's velocity when the key is pressed
+          explorer.vx = -5;
+          explorer.vy = 0;
+        };
+
+        //Left arrow key `release` method
+        left.release = () => {
+          //If the left arrow has been released, and the right arrow isn't down,
+          //and the explorer isn't moving vertically, stop the sprite from moving
+          //by setting its velocity to zero
+          if (!right.isDown && explorer.vy === 0) {
+            explorer.vx = 0;
+          }
+        };
+        //Up
+        up.press = () => {
+          explorer.vy = -5;
+          explorer.vx = 0;
+        };
+        up.release = () => {
+          if (!down.isDown && explorer.vx === 0) {
+            explorer.vy = 0;
+          }
+        };
+        //Right
+        right.press = () => {
+          explorer.vx = 5;
+          explorer.vy = 0;
+        };
+        right.release = () => {
+          if (!left.isDown && explorer.vy === 0) {
+            explorer.vx = 0;
+          }
+        };
+        //Down
+        down.press = () => {
+          explorer.vy = 5;
+          explorer.vx = 0;
+        };
+        down.release = () => {
+          if (!up.isDown && explorer.vx === 0) {
+            explorer.vy = 0;
+          }
+        };
+
+        //Treasure
+        treasure = new Sprite(id["treasure.png"]);
+        treasure.x = gameScene.width - treasure.width - 48;
+        treasure.y = gameScene.height / 2 - treasure.height / 2;
+        gameScene.addChild(treasure);
 
         let numberOfBlobs = 6,
           spacing = 48,
-          xOffset = 150;
+          xOffset = 150,
+          speed = 2,
+          direction = 1;
 
+        //An array to store all the blob monsters
+        blobs = [];
+
+        //Make as many blobs as there are `numberOfBlobs`
         for (let i = 0; i < numberOfBlobs; i++) {
+          //Make a blob
           let blob = new Sprite(id["blob.png"]);
 
+          //Space each blob horizontally according to the `spacing` value.
+          //`xOffset` determines the point from the left of the screen
+          //at which the first blob should be added
           let x = spacing * i + xOffset;
 
+          //Give the blob a random y position
           let y = randomInt(0, stage.height - blob.height);
 
-          blob.position.set(x, y);
+          //Set the blob's position
+          blob.x = x;
+          blob.y = y;
 
-          stage.addChild(blob);
+          //Set the blob's vertical velocity. `direction` will be either `1` or
+          //`-1`. `1` means the enemy will move down and `-1` means the blob will
+          //move up. Multiplying `direction` by `speed` determines the blob's
+          //vertical direction
+          blob.vy = speed * direction;
+
+          //Reverse the direction for the next blob
+          direction *= -1;
+
+          //Push the blob into the `blobs` array
+          blobs.push(blob);
+
+          //Add the blob to the `gameScene`
+          gameScene.addChild(blob);
         }
 
+        //Create the container
+        healthBar = new Container();
+        healthBar.position.set(stage.width - 170, 4);
+        gameScene.addChild(healthBar);
+
+        //Create the black background rectangle
+        let innerBar = new Graphics();
+        innerBar.beginFill(0x000000);
+        innerBar.drawRect(0, 0, 128, 8);
+        innerBar.endFill();
+        healthBar.addChild(innerBar);
+
+        //Create the front red rectangle
+        let outerBar = new Graphics();
+        outerBar.beginFill(0xff3300);
+        outerBar.drawRect(0, 0, 128, 8);
+        outerBar.endFill();
+        healthBar.addChild(outerBar);
+
+        //Add an `outer` property to the `healthBar` that references
+        //the `outerBar`
+        healthBar.outer = outerBar;
+
+        message = new Text("The End!", { font: "48px Futura" });
+        message.x = 120;
+        message.y = stage.height / 2 - 32;
+        gameOverScene.addChild(message);
+
+        state = play;
+
+        gameLoop();
+      }
+
+      function gameLoop() {
+        requestAnimationFrame(gameLoop);
+
+        state();
+
         renderer.render(stage);
+      }
+
+      function play() {
+        explorer.x += explorer.vx;
+        explorer.y += explorer.vy;
+
+        contain(explorer, { x: 28, y: 10, width: 488, height: 480 });
+
+        blobs.forEach((blob) => {
+          //Move the blob
+          blob.y += blob.vy;
+
+          //Check the blob's screen boundaries
+          let blobHitsWall = contain(blob, {
+            x: 28,
+            y: 10,
+            width: 488,
+            height: 480,
+          });
+
+          //If the blob hits the top or bottom of the stage, reverse its direction
+          if (blobHitsWall) {
+            if (blobHitsWall.has("top") || blobHitsWall.has("bottom")) {
+              blob.vy *= -1;
+            }
+          }
+
+          //Test for a collision. If any of the enemies are touching
+          //the explorer, set `explorerHit` to `true`
+          if (b.hitTestRectangle(explorer, blob)) {
+            explorerHit = true;
+          }
+        });
+
+        /*if (explorerHit) {
+          //Make the explorer semi-transparent
+          explorer.alpha = 0.5;
+
+          //Reduce the width of the health bar's inner rectangle by 1 pixel
+          healthBar.outer.width -= 1;
+        } else {
+          //Make the explorer fully opaque (non-transparent) if it hasn't been hit
+          explorer.alpha = 1;
+        }
+
+        if (b.hitTestRectangle(explorer, treasure)) {
+          treasure.x = explorer.x + 8;
+          treasure.y = explorer.y + 8;
+        }*/
       }
     </script>
   </body>
