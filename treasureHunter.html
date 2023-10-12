@@ -14,8 +14,8 @@
   <body>
     <script src="./pixi.min.js"></script>
     <script src="./keyboard.js"></script>
+    <script src="./contain.js"></script>
     <script src="./bump.js"></script>
-    <script src="contain.js"></script>
     <script>
       let Container = PIXI.Container,
         autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -29,6 +29,7 @@
         b = new Bump(PIXI),
         dungeon,
         explorer,
+        explorerHit = false,
         blob,
         trasure,
         door,
@@ -69,6 +70,7 @@
         //Dungeon
         dungeon = new Sprite(id["dungeon.png"]);
         gameScene.addChild(dungeon);
+
         //Door
         door = new Sprite(id["door.png"]);
         door.position.set(32, 0);
@@ -79,6 +81,7 @@
         explorer.y = gameScene.height / 2 - explorer.height / 2;
         explorer.vx = 0;
         explorer.vy = 0;
+        let explorerSpeed = 3;
         gameScene.addChild(explorer);
 
         //Capture the keyboard arrow keys
@@ -90,7 +93,7 @@
         //Left arrow key `press` method
         left.press = () => {
           //Change the sprite's velocity when the key is pressed
-          explorer.vx = -5;
+          explorer.vx = -explorerSpeed;
           explorer.vy = 0;
         };
 
@@ -105,7 +108,7 @@
         };
         //Up
         up.press = () => {
-          explorer.vy = -5;
+          explorer.vy = -explorerSpeed;
           explorer.vx = 0;
         };
         up.release = () => {
@@ -115,7 +118,7 @@
         };
         //Right
         right.press = () => {
-          explorer.vx = 5;
+          explorer.vx = explorerSpeed;
           explorer.vy = 0;
         };
         right.release = () => {
@@ -125,7 +128,7 @@
         };
         //Down
         down.press = () => {
-          explorer.vy = 5;
+          explorer.vy = explorerSpeed;
           explorer.vx = 0;
         };
         down.release = () => {
@@ -143,7 +146,7 @@
         let numberOfBlobs = 6,
           spacing = 48,
           xOffset = 150,
-          speed = 2,
+          speed = 6,
           direction = 1;
 
         //An array to store all the blob monsters
@@ -205,9 +208,13 @@
         //the `outerBar`
         healthBar.outer = outerBar;
 
+        finalBackground = new Sprite(id["dungeon.png"]);
+        gameOverScene.addChild(finalBackground);
+
         message = new Text("The End!", { font: "48px Futura" });
-        message.x = 120;
-        message.y = stage.height / 2 - 32;
+        message.anchor.set(0.5, 0.5);
+        message.x = stage.width / 2;
+        message.y = stage.height / 2;
         gameOverScene.addChild(message);
 
         state = play;
@@ -252,15 +259,17 @@
           //the explorer, set `explorerHit` to `true`
           if (b.hitTestRectangle(explorer, blob)) {
             explorerHit = true;
+            console.log("Explorer Hit = ", explorerHit);
           }
         });
 
-        /*if (explorerHit) {
+        if (explorerHit) {
           //Make the explorer semi-transparent
           explorer.alpha = 0.5;
 
           //Reduce the width of the health bar's inner rectangle by 1 pixel
-          healthBar.outer.width -= 1;
+          healthBar.outer.width -= 10;
+          explorerHit = false;
         } else {
           //Make the explorer fully opaque (non-transparent) if it hasn't been hit
           explorer.alpha = 1;
@@ -269,7 +278,24 @@
         if (b.hitTestRectangle(explorer, treasure)) {
           treasure.x = explorer.x + 8;
           treasure.y = explorer.y + 8;
-        }*/
+        }
+
+        if (b.hitTestRectangle(treasure, door)) {
+          state = end;
+          message.text = "¡ Has ganado !";
+          message.style = { font: "48px Futura", fill: "yellow" };
+        }
+
+        if (healthBar.outer.width < 0) {
+          state = end;
+          message.text = "¡ Has muerto !";
+          message.style = { font: "48px Futura", fill: "red" };
+        }
+      }
+
+      function end() {
+        gameScene.visible = false;
+        gameOverScene.visible = true;
       }
     </script>
   </body>
