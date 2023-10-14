@@ -16,6 +16,7 @@
     <script src="./keyboard.js"></script>
     <script src="./contain.js"></script>
     <script src="./bump.js"></script>
+    <script src="./spriteUtilities.js"></script>
     <script>
       let Container = PIXI.Container,
         autoDetectRenderer = PIXI.autoDetectRenderer,
@@ -27,6 +28,8 @@
         Graphics = PIXI.Graphics,
         Text = PIXI.Text,
         b = new Bump(PIXI),
+        Rectangle = PIXI.Rectangle,
+        MovieClip = PIXI.extras.MovieClip,
         dungeon,
         explorer,
         explorerHit = false,
@@ -41,7 +44,7 @@
       document.body.appendChild(renderer.view);
 
       loader
-        .add(["./images/treasureHunterK.json"])
+        .add(["./images/treasureHunterK.json", "./images/adventuress.png"])
         .on("progress", loadProgressHandler)
         .load(setup);
 
@@ -55,6 +58,7 @@
       }
 
       function setup() {
+        let su = new SpriteUtilities(PIXI);
         console.log("All files loaded");
 
         gameScene = new Container();
@@ -136,6 +140,8 @@
             explorer.vy = 0;
           }
         };
+
+        //Adventuress
 
         //Treasure
         treasure = new Sprite(id["treasure.png"]);
