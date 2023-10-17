@@ -37,14 +37,20 @@
         trasure,
         door,
         id,
-        state;
+        adventuress = undefined,
+        adventuressHit = undefined,
+        state = play;
 
       let stage = new Container(),
         renderer = autoDetectRenderer(512, 512);
       document.body.appendChild(renderer.view);
 
       loader
-        .add(["./images/treasureHunterK.json", "./images/adventuress.png"])
+        .add([
+          "./images/treasureHunterK.json",
+          "./images/adventuress.png",
+          "/images/blobs.png",
+        ])
         .on("progress", loadProgressHandler)
         .load(setup);
 
@@ -58,8 +64,8 @@
       }
 
       function setup() {
-        let su = new SpriteUtilities(PIXI);
         console.log("All files loaded");
+        let su = new SpriteUtilities(PIXI);
 
         gameScene = new Container();
         stage.addChild(gameScene);
@@ -79,8 +85,9 @@
         door = new Sprite(id["door.png"]);
         door.position.set(32, 0);
         gameScene.addChild(door);
+
         //Explorer
-        explorer = new Sprite(id["explorer.png"]);
+        /* explorer = new Sprite(id["explorer.png"]);
         explorer.x = 68;
         explorer.y = gameScene.height / 2 - explorer.height / 2;
         explorer.vx = 0;
@@ -88,8 +95,8 @@
         let explorerSpeed = 3;
         gameScene.addChild(explorer);
 
-        //Capture the keyboard arrow keys
-        let left = keyboard(37),
+                //Capture the keyboard arrow keys
+                let left = keyboard(37),
           up = keyboard(38),
           right = keyboard(39),
           down = keyboard(40);
@@ -139,9 +146,109 @@
           if (!up.isDown && explorer.vx === 0) {
             explorer.vy = 0;
           }
-        };
+        };*/
 
         //Adventuress
+        //Use the custom `frameSeries` function to create the frames array
+        let frames = su.filmstrip("./images/adventuress.png", 32, 32);
+
+        //Create a MovieClip from the frames using the
+        //custom `sprite` utility function
+        adventuress = su.sprite(frames);
+        adventuress.vx = 0;
+        adventuress.vy = 0;
+        let adventuressSpeed = 3;
+
+        //Set the sprite's position and add it to the stage
+        adventuress.position.set(
+          68,
+          gameScene.height / 2 - adventuress.height / 2
+        );
+        gameScene.addChild(adventuress);
+
+        //Optionally set the sprite's `fps` to change the
+        //speed of the animation effect (the default value is 12)
+        adventuress.fps = 15;
+
+        //Define the sprite's states
+        adventuress.states = {
+          down: 0,
+          left: 3,
+          right: 6,
+          up: 9,
+          walkDown: [0, 2],
+          walkLeft: [3, 5],
+          walkRight: [6, 8],
+          walkUp: [9, 11],
+        };
+
+        //Capture the keyboard arrow keys
+        let left = keyboard(37),
+          up = keyboard(38),
+          right = keyboard(39),
+          down = keyboard(40);
+
+        //Program the arrow keys
+        //Left arrow key `press` method
+        left.press = () => {
+          //Play the sprite's `walkLeft` animation
+          //sequence and set the sprite's velocity
+          adventuress.playAnimation(adventuress.states.walkLeft);
+          adventuress.vx = -adventuressSpeed;
+          adventuress.vy = 0;
+        };
+
+        //Left arrow key `release` method
+        left.release = () => {
+          //If the left arrow has been released, and the right arrow isn't down,
+          //and the sprite isn't moving vertically, stop the sprite from moving
+          //by setting its velocity to zero. Then display the sprite's static
+          //`left` state.
+          if (!right.isDown && adventuress.vy === 0) {
+            adventuress.vx = 0;
+            adventuress.show(adventuress.states.left);
+          }
+        };
+
+        //The rest of the arrow keys follow the same format
+        //Up
+        up.press = () => {
+          adventuress.playAnimation(adventuress.states.walkUp);
+          adventuress.vy = -adventuressSpeed;
+          adventuress.vx = 0;
+        };
+        up.release = () => {
+          if (!down.isDown && adventuress.vx === 0) {
+            adventuress.vy = 0;
+            adventuress.show(adventuress.states.up);
+          }
+        };
+
+        //Right
+        right.press = () => {
+          adventuress.playAnimation(adventuress.states.walkRight);
+          adventuress.vx = adventuressSpeed;
+          adventuress.vy = 0;
+        };
+        right.release = () => {
+          if (!left.isDown && adventuress.vy === 0) {
+            adventuress.vx = 0;
+            adventuress.show(adventuress.states.right);
+          }
+        };
+
+        //Down
+        down.press = () => {
+          adventuress.playAnimation(adventuress.states.walkDown);
+          adventuress.vy = adventuressSpeed;
+          adventuress.vx = 0;
+        };
+        down.release = () => {
+          if (!up.isDown && adventuress.vx === 0) {
+            adventuress.vy = 0;
+            adventuress.show(adventuress.states.down);
+          }
+        };
 
         //Treasure
         treasure = new Sprite(id["treasure.png"]);
@@ -152,7 +259,7 @@
         let numberOfBlobs = 6,
           spacing = 48,
           xOffset = 150,
-          speed = 6,
+          speed = 3,
           direction = 1;
 
         //An array to store all the blob monsters
@@ -237,7 +344,7 @@
       }
 
       function play() {
-        explorer.x += explorer.vx;
+        /* explorer.x += explorer.vx;
         explorer.y += explorer.vy;
 
         contain(explorer, { x: 28, y: 10, width: 488, height: 480 });
@@ -284,6 +391,67 @@
         if (b.hitTestRectangle(explorer, treasure)) {
           treasure.x = explorer.x + 8;
           treasure.y = explorer.y + 8;
+        }
+
+        if (b.hitTestRectangle(treasure, door)) {
+          state = end;
+          message.text = "¡ Has ganado !";
+          message.style = { font: "48px Futura", fill: "yellow" };
+        }
+
+        if (healthBar.outer.width < 0) {
+          state = end;
+          message.text = "¡ Has muerto !";
+          message.style = { font: "48px Futura", fill: "red" };
+        } */
+
+        adventuress.x += adventuress.vx;
+        adventuress.y += adventuress.vy;
+
+        contain(adventuress, { x: 28, y: 10, width: 488, height: 480 });
+
+        blobs.forEach((blob) => {
+          //Move the blob
+          blob.y += blob.vy;
+
+          //Check the blob's screen boundaries
+          let blobHitsWall = contain(blob, {
+            x: 28,
+            y: 10,
+            width: 488,
+            height: 480,
+          });
+
+          //If the blob hits the top or bottom of the stage, reverse its direction
+          if (blobHitsWall) {
+            if (blobHitsWall.has("top") || blobHitsWall.has("bottom")) {
+              blob.vy *= -1;
+            }
+          }
+
+          //Test for a collision. If any of the enemies are touching
+          //the explorer, set `explorerHit` to `true`
+          if (b.hitTestRectangle(adventuress, blob)) {
+            adventuressHit = true;
+            console.log("Adventuress Hit = ", adventuressHit);
+          }
+        });
+
+        if (adventuressHit) {
+          //Make the explorer semi-transparent
+          adventuress.alpha = 0.5;
+
+          //Reduce the width of the health bar's inner rectangle by 1 pixel
+          healthBar.outer.width -= 10;
+          adventuressHit = false;
+        } else {
+          //Make the explorer fully opaque (non-transparent) if it hasn't been hit
+          adventuress.alpha = 1;
+        }
+
+        if (b.hitTestRectangle(adventuress, treasure)) {
+          treasure.x = adventuress.x + 15;
+          treasure.y = adventuress.y + 15;
         }
 
         if (b.hitTestRectangle(treasure, door)) {
